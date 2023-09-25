@@ -61,6 +61,25 @@ impl eframe::App for MyApp {
             }
         }
 
+        if let Some(pos) = ctx.input(|i| i.pointer.hover_pos()) {
+            let y_min = 0.max((pos.y - 5.) as usize);
+            let y_max = 500.min((pos.y + 5.) as usize);
+
+            let x_min = 0.max((pos.x - 5.) as usize);
+            let x_max = 500.min((pos.x + 5.) as usize);
+
+            for y in y_min..y_max {
+                for x in x_min..x_max {
+                    pixels[500*y+x] = Color32::from_rgb(
+                        255, 
+                        255, 
+                        255
+                    );
+                }
+            }
+        }
+
+
         let image = ColorImage {
             pixels, 
             size: [500, 500]
