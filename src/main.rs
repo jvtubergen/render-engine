@@ -1,8 +1,8 @@
-use eframe::{egui::{self, TextureOptions}, epaint::{ImageData, ColorImage, Color32, ImageDelta, TextureId, Vec2}};
+use eframe::{egui::{self, TextureOptions, Area}, epaint::{ImageData, ColorImage, Color32, ImageDelta, TextureId, Vec2}};
 
 fn main() -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {
-        initial_window_size: Some(egui::vec2(600.0, 600.0)),
+        initial_window_size: Some(egui::vec2(500.0, 500.0)),
         ..Default::default()
     };
     eframe::run_native(
@@ -82,42 +82,11 @@ impl eframe::App for MyApp {
         ctx.tex_manager().write().set(id, delta);
 
 
-        // Show image in egui.
-        egui::CentralPanel::default().show(ctx, |ui| {
-            ui.heading("This is an image:");
-            ui.image(id, Vec2 { x: 500., y: 500. });
-        });
+        egui::Area::new("renderer")
+            .fixed_pos(egui::pos2(0.0, 0.0))
+            .show(ctx, |ui| {
+                ui.image(id, Vec2 { x: 500., y: 500. });
+            });
+
     }
 }
-
-
-struct MyImage {
-    image_data: [u8;500*500]
-}
-
-impl Into<ImageData> for MyImage {
-    fn into(self) -> ImageData {
-
-        let mut pixels = vec![];
-        pixels.resize(500*500, Color32::from_rgb(0, 0, 0));
-
-        // Fill in the coloring.
-        for y in 0..500 {
-            for x in 0..500 {
-                pixels[500*y+x] = Color32::from_rgb(
-                    rand::random(), 
-                    rand::random(), 
-                    rand::random()
-                );
-            }
-        }
-
-        let color_image = ColorImage {
-            pixels, 
-            size: [500, 500]
-        };
-
-        ImageData::Color(color_image)
-        
-    }
-} //
