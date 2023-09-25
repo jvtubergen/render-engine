@@ -10,6 +10,7 @@ pub type Matrix = Matrix4<f32>;
 pub type Isometry = Isometry3<f32>;
 
 
+#[derive(Clone)]
 pub struct Camera {
     pub pos: Point,
     pub dir: Vector,
