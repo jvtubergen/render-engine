@@ -1,4 +1,8 @@
-use eframe::{egui::{self, TextureOptions, Area}, epaint::{ImageData, ColorImage, Color32, ImageDelta, TextureId, Vec2}};
+use camera::{Camera, Vector, Point};
+use eframe::{egui::{self, TextureOptions}, epaint::{ImageData, ColorImage, Color32, ImageDelta, TextureId, Vec2, Pos2}};
+use nalgebra::{point, Point3, Unit, Vector3, Perspective3, Isometry3};
+
+mod camera;
 
 fn main() -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {
@@ -65,6 +69,34 @@ impl eframe::App for MyApp {
         pixels.resize(h*w, Color32::from_rgb(0, 0, 0));
 
 
+
+        let camera = Camera::new(
+            point![3.,3.,3.],
+            Vector::new(-3., -3., -3.), // Look at (0,0,0)
+            std::f32::consts::FRAC_PI_4,
+            size
+        );
+
+        for y in 0..h {
+            for x in 0..w {
+                let ray = camera.ray(x as f32, y as f32);
+                // Check for intersection with world (x,y)-plane.  
+                if ray.z >= 0.001 {
+                    // Render blue.
+                    pixels[w*y+x] = Color32::BLUE;
+                } else {
+                    let t = camera.pos.z / -ray.z;
+                    let p = camera.pos + ray.scale(t);
+                    if ((p.x as i32) + (p.y as i32)) % 2 == 0 {
+                        pixels[w*y+x] = Color32::BLACK;
+                    } else {
+                        pixels[w*y+x] = Color32::WHITE;
+                    }
+                };
+            }
+        }
+
+
         // Render white box at mouse position.
         if let Some(pos) = ctx.input(|i| i.pointer.hover_pos()) {
             let y_min = 0.max((pos.y - 5.) as usize);
@@ -81,6 +113,8 @@ impl eframe::App for MyApp {
                 }
             }
         }
+
+
 
         self.image_delta.image = ImageData::Color(ColorImage {
             pixels, 
