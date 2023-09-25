@@ -6,7 +6,7 @@ fn main() -> Result<(), eframe::Error> {
         ..Default::default()
     };
     eframe::run_native(
-        "Show an image with eframe/egui",
+        "Basic renderer",
         options,
         Box::new(|_cc| Box::<MyApp>::default()),
     )
@@ -14,14 +14,28 @@ fn main() -> Result<(), eframe::Error> {
 
 struct MyApp {
     init: bool,
-    image_id: Option<TextureId>
+    image_id: Option<TextureId>,
+    image_delta: ImageDelta,
 }
 
 impl Default for MyApp {
     fn default() -> Self {
         Self {
             init: false,
-            image_id: None
+            image_id: None,
+            image_delta: ImageDelta { 
+                image: ImageData::Color(
+                    ColorImage::new(
+                        [500, 500], 
+                        Color32::BLACK
+                    )
+                ), 
+                options: TextureOptions { 
+                    magnification: egui::TextureFilter::Nearest, 
+                    minification: egui::TextureFilter::Nearest 
+                }, 
+                pos: None
+            }
         }
     }
 }
@@ -29,19 +43,11 @@ impl Default for MyApp {
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
 
-
-        let options : TextureOptions = TextureOptions { 
-            magnification: egui::TextureFilter::Nearest, 
-            minification: egui::TextureFilter::Nearest 
-        }; 
-
         // On initial, create the 500x500 image texture to render.
         if !self.init {
 
-            let image : ImageData = ImageData::Color(ColorImage::new([500, 500], Color32::BLACK));
-
             // Initiate texture.
-            self.image_id = Some(ctx.tex_manager().write().alloc("renderer".to_owned(), image, options));
+            self.image_id = Some(ctx.tex_manager().write().alloc("renderer".to_owned(), self.image_delta.image.clone(), self.image_delta.options));
         }
 
 
@@ -50,17 +56,7 @@ impl eframe::App for MyApp {
         pixels.resize(500*500, Color32::from_rgb(0, 0, 0));
 
 
-        // Fill in the coloring.
-        for y in 0..500 {
-            for x in 0..500 {
-                pixels[500*y+x] = Color32::from_rgb(
-                    rand::random(), 
-                    rand::random(), 
-                    rand::random()
-                );
-            }
-        }
-
+        // Render white box at mouse position.
         if let Some(pos) = ctx.input(|i| i.pointer.hover_pos()) {
             let y_min = 0.max((pos.y - 5.) as usize);
             let y_max = 500.min((pos.y + 5.) as usize);
@@ -71,34 +67,21 @@ impl eframe::App for MyApp {
             for y in y_min..y_max {
                 for x in x_min..x_max {
                     pixels[500*y+x] = Color32::from_rgb(
-                        255, 
-                        255, 
-                        255
+                        255,255,255
                     );
                 }
             }
         }
 
-
-        let image = ColorImage {
+        self.image_delta.image = ImageData::Color(ColorImage {
             pixels, 
             size: [500, 500]
-        };
-
-
-        let data = ImageData::Color(image);
-
-
-        let delta = ImageDelta {
-            image: data,
-            pos: None,
-            options
-        };
+        });
 
 
         // Apply delta to texture.
         let id = self.image_id.unwrap();
-        ctx.tex_manager().write().set(id, delta);
+        ctx.tex_manager().write().set(id, self.image_delta.clone());
 
 
         egui::Area::new("renderer")
