@@ -179,6 +179,29 @@ impl eframe::App for MyApp {
             .fixed_pos(egui::pos2(0.0, 0.0))
             .show(ctx, |ui| {
                 ui.image(id, Vec2 { x: w as f32, y: h as f32 });
+                ui.input_mut(|i| {
+
+                    if i.consume_key(Modifiers::NONE, Key::A) {
+                        self.camera.pos += Vector::z_axis().cross(&self.camera.dir).scale(-0.1);
+                        self.changed = true;
+                    }
+
+                    if i.consume_key(Modifiers::NONE, Key::D) {
+                        self.camera.pos += Vector::z_axis().cross(&self.camera.dir).scale(0.1);
+                        self.changed = true;
+                    }
+
+                    if i.consume_key(Modifiers::NONE, Key::S) {
+                        self.camera.pos += self.camera.dir.scale(-0.1);
+                        self.changed = true;
+                    }
+
+                    if i.consume_key(Modifiers::NONE, Key::W) {
+                        self.camera.pos += self.camera.dir.scale(0.1);
+                        self.changed = true;
+                    }
+
+                })
             });
 
     }
