@@ -2,7 +2,7 @@ use std::{time::Duration, thread};
 
 use camera::{Camera, Vector, Point};
 use eframe::{egui::{self, TextureOptions, Modifiers, Key}, epaint::{ImageData, ColorImage, Color32, ImageDelta, TextureId, Vec2, Pos2}};
-use nalgebra::{point, UnitQuaternion};
+use nalgebra::{point, UnitQuaternion, Unit};
 
 use crate::camera::Isometry;
 
@@ -67,7 +67,6 @@ struct Ray {
 
 fn trace_ray(ray: &Ray) -> Color32 {
     if ray.dir.z >= 0.001 {
-        // Render blue.
         Color32::BLUE
     } else {
         let t = ray.pos.z / -ray.dir.z;
@@ -179,6 +178,7 @@ impl eframe::App for MyApp {
             .fixed_pos(egui::pos2(0.0, 0.0))
             .show(ctx, |ui| {
                 ui.image(id, Vec2 { x: w as f32, y: h as f32 });
+
                 ui.input_mut(|i| {
 
                     if i.consume_key(Modifiers::NONE, Key::A) {
@@ -199,6 +199,24 @@ impl eframe::App for MyApp {
                     if i.consume_key(Modifiers::NONE, Key::W) {
                         self.camera.pos += self.camera.dir.scale(0.1);
                         self.changed = true;
+                    }
+
+                    if i.pointer.primary_down() {
+                        let diff = i.pointer.delta() * 0.01 ;
+                        // println!("{:?}", diff);
+
+                        // x-axis and y-axis in relation to camera.
+                        let x_axis: Unit<Vector> = Unit::new_normalize(Vector::z_axis().cross(&self.camera.dir));
+                        let y_axis: Unit<Vector> = Unit::new_normalize(self.camera.dir.cross(&x_axis));
+
+                        // Construct quaternions to rotate around x-axis and y-axis.
+                        let q_x = UnitQuaternion::from_axis_angle(&y_axis, diff.x);
+                        let q_y = UnitQuaternion::from_axis_angle(&x_axis, diff.y);
+
+                        self.camera.dir = (q_x * q_y).to_rotation_matrix() * self.camera.dir;
+
+                        self.changed = true;
+
                     }
 
                 })
