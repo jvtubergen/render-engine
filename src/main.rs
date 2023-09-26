@@ -6,6 +6,7 @@ use nalgebra::{point, Point3, Unit, Vector3, Perspective3, Isometry3};
 
 mod camera;
 
+
 fn main() -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {
         initial_window_size: Some(egui::vec2(500.0, 500.0)),
@@ -18,6 +19,7 @@ fn main() -> Result<(), eframe::Error> {
     )
 }
 
+
 struct MyApp {
     init: bool,
     changed: bool,
@@ -25,6 +27,7 @@ struct MyApp {
     image_delta: ImageDelta,
     camera: Camera
 }
+
 
 impl Default for MyApp {
     fn default() -> Self {
@@ -55,16 +58,18 @@ impl Default for MyApp {
     }
 }
 
+struct Ray {
+    pos: Point,
+    dir: Vector
+}
 
-fn trace_ray(camera: &Camera, x: f32, y: f32) -> Color32 {
-    let ray = camera.ray(x as f32, y as f32);
-    // Check for intersection with world (x,y)-plane.  
-    if ray.z >= 0.001 {
+fn trace_ray(ray: &Ray) -> Color32 {
+    if ray.dir.z >= 0.001 {
         // Render blue.
         Color32::BLUE
     } else {
-        let t = camera.pos.z / -ray.z;
-        let p = camera.pos + ray.scale(t);
+        let t = ray.pos.z / -ray.dir.z;
+        let p = ray.pos + ray.dir.scale(t);
         if ((p.x as i32) + (p.y as i32)) % 2 == 0 {
             Color32::BLACK
         } else {
@@ -74,6 +79,7 @@ fn trace_ray(camera: &Camera, x: f32, y: f32) -> Color32 {
 }
 
 impl eframe::App for MyApp {
+
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
 
         ctx.request_repaint_after(Duration::from_secs(100));
@@ -81,6 +87,9 @@ impl eframe::App for MyApp {
 
         // On initial, create the 500x500 image texture to render.
         if !self.init {
+
+            // Disable initial render flow.
+            self.init  = true;
 
             // Initiate texture.
             self.image_id = Some(
@@ -91,7 +100,6 @@ impl eframe::App for MyApp {
                 )
             );
 
-            self.init  = true;
         }
 
 
@@ -108,12 +116,6 @@ impl eframe::App for MyApp {
 
             self.camera.screen = size;
 
-            // Create pixels.
-            let mut pixels = vec![];
-            pixels.resize(h*w, Color32::from_rgb(0, 0, 0));
-
-
-
             // Create 16 batches for multithreaded computing rays.
             let mut batch_ranges = vec![];
             
@@ -123,35 +125,41 @@ impl eframe::App for MyApp {
             }
             batch_ranges.push((15 * step_y, h));
 
+            // Generate rays.
+            let fov = self.camera.fov;
+            let pos = self.camera.pos;
+            let w_c = self.camera.w_c;
+
+
             // Create thread per batch.
             let mut threads = vec![];
             for range in batch_ranges {
-                let camera = self.camera.clone();
                 threads.push(thread::spawn(move || {
                     let mut result = vec![];
                     for y in range.0 .. range.1 {
                         for x in 0..w {
-                            result.push(trace_ray(&camera, x as f32, y as f32));
+                            let ray = Ray {
+                                pos,
+                                dir: w_c * Vector::new(
+                                    2.0 * ((x as f32 / w as f32) - 0.5) *  f32::tan(0.5 * fov),
+                                    2.0 * ((y as f32 / h as f32) - 0.5) * -f32::tan(0.5 * fov), 
+                                    1.
+                                )
+                            };
+                            result.push(trace_ray(&ray));
                         }
                     }
                     result
                 }))
             }
             
+
             // Combine results.
             let result : Vec<Vec<Color32>> = threads.into_iter().map(|h| h.join().unwrap()).collect();
             let result = result.concat();
 
-            for y in 0..h {
-                for x in 0..w {
-                    pixels[y*w + x] = result[y*w + x];
-                }
-            }
-
-
-
             self.image_delta.image = ImageData::Color(ColorImage {
-                pixels, 
+                pixels: result, 
                 size: [w, h]
             });
 

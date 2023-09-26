@@ -17,7 +17,7 @@ pub struct Camera {
     /// Field of view in radians. (Default is `f32::consts::FRAC_PI_4`).
     pub fov: f32, 
     pub screen: Vec2,
-    w_c: Isometry
+    pub w_c: Isometry
 }
 impl Camera {
 
