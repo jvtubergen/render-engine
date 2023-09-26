@@ -41,40 +41,4 @@ impl Camera {
         Isometry::from_parts(pos.into(), rot)
     }
 
-    /// Pixel location -> direction vector in camera frame.
-    fn t_c(&self, x: f32, y: f32) -> Isometry {
-        
-        // Construct the quaternions for rotation.
-        let dir_x = Vector::x_axis();
-        // Note: Vertical change in pixel position means rotation around x-axis.
-        let angle_x = self.fov * (y - 0.5 * self.screen.y) / self.screen.y;
-
-        let dir_y = Vector::y_axis();
-        // Note: Horizontal change in pixel position means rotation around y-axis.
-        let angle_y = self.fov * (x - 0.5 * self.screen.x) / self.screen.x; 
-
-        // Combine rotations around x and y axis.
-        let rot_x = UnitQuaternion::from_axis_angle(&dir_x, angle_x);
-        let rot_y = UnitQuaternion::from_axis_angle(&dir_y, angle_y);
-        let rot = rot_y * rot_x;
-
-        // Construct isometry.
-        Isometry::from_parts(Vector::zeros().into(), rot)
-
-    }
-    
-    /// Convert pixel location into a world ray vector.
-    pub fn ray(&self, x: f32, y: f32) -> Unit<Vector> {
-
-        let t_c = self.t_c(x, y);
-
-        // First move (x,y) position into camera ray.
-        let camera_ray = t_c * Vector::z_axis();
-        // Then to world ray.
-        let world_ray = self.w_c * camera_ray;
-
-        world_ray
-    }
-
-
 }

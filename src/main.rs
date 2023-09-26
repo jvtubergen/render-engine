@@ -2,7 +2,9 @@ use std::{time::Duration, thread};
 
 use camera::{Camera, Vector, Point};
 use eframe::{egui::{self, TextureOptions, Modifiers, Key}, epaint::{ImageData, ColorImage, Color32, ImageDelta, TextureId, Vec2, Pos2}};
-use nalgebra::{point, Point3, Unit, Vector3, Perspective3, Isometry3};
+use nalgebra::{point, UnitQuaternion};
+
+use crate::camera::Isometry;
 
 mod camera;
 
@@ -110,6 +112,14 @@ impl eframe::App for MyApp {
 
         self.changed = self.changed || size != self.camera.screen;
 
+        // Generate rays.
+        let fov = self.camera.fov;
+        let pos = self.camera.pos;
+        let w_c = Isometry::from_parts(
+            self.camera.pos.into(), 
+            UnitQuaternion::face_towards(&self.camera.dir, &Vector::z())
+        );
+
         if self.changed {
 
             self.changed = false;
@@ -125,10 +135,6 @@ impl eframe::App for MyApp {
             }
             batch_ranges.push((15 * step_y, h));
 
-            // Generate rays.
-            let fov = self.camera.fov;
-            let pos = self.camera.pos;
-            let w_c = self.camera.w_c;
 
 
             // Create thread per batch.
