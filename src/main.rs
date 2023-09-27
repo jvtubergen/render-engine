@@ -11,7 +11,7 @@ mod camera;
 
 fn main() -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {
-        initial_window_size: Some(egui::vec2(500.0, 500.0)),
+        initial_window_size: Some(egui::vec2(400.0, 400.0)),
         ..Default::default()
     };
     eframe::run_native(
@@ -40,7 +40,7 @@ impl Default for MyApp {
             image_delta: ImageDelta { 
                 image: ImageData::Color(
                     ColorImage::new(
-                        [500, 500], 
+                        [400, 400], 
                         Color32::BLACK
                     )
                 ), 
@@ -54,7 +54,7 @@ impl Default for MyApp {
                 point![3.,3.,3.],
                 Vector::new(-3., -3., -3.), // Look at (0,0,0)
                 std::f32::consts::FRAC_PI_4,
-                Vec2 { x: 500.0, y: 500.0 }
+                Vec2 { x: 400.0, y: 400.0 }
             )
         }
     }
@@ -102,7 +102,7 @@ impl eframe::App for MyApp {
         ctx.request_repaint_after(Duration::from_secs(100));
 
 
-        // On initial, create the 500x500 image texture to render.
+        // On initial, create the 400x400 image texture to render.
         if !self.init {
 
             // Disable initial render flow.
@@ -124,6 +124,11 @@ impl eframe::App for MyApp {
         let w = size.x as usize;
         let h = size.y as usize;
         let id = self.image_id.unwrap();
+
+        // Pixel size on screen.
+        let ppp = 2; // Pixels per point.
+        let w = (w as f32 / ppp as f32) as usize;
+        let h = (h as f32 / ppp as f32) as usize;
 
         self.changed = self.changed || size != self.camera.screen;
 
@@ -193,9 +198,10 @@ impl eframe::App for MyApp {
             let result : Vec<Vec<Color32>> = threads.into_iter().map(|h| h.join().unwrap()).collect();
             let result = result.concat();
 
+            // Apply pixelate.
             self.image_delta.image = ImageData::Color(ColorImage {
-                pixels: result, 
-                size: [w, h]
+                pixels: pixelate(result, w, h, ppp), 
+                size: [w * ppp, h * ppp]
             });
 
 
@@ -207,7 +213,7 @@ impl eframe::App for MyApp {
         egui::Area::new("renderer")
             .fixed_pos(egui::pos2(0.0, 0.0))
             .show(ctx, |ui| {
-                ui.image(id, Vec2 { x: w as f32, y: h as f32 });
+                ui.image(id, Vec2 { x: (ppp * w) as f32, y: (ppp * h) as f32 });
 
                 ui.input_mut(|i| {
 
@@ -272,4 +278,22 @@ fn combine_colors(colors: Vec<Color32>) -> Color32 {
     // Fold remaining colors on top of it.
     let result = right.into_iter().fold(left[0], |acc, v| add_colors(acc, *v));
     Color32::from_rgb(result[0] as u8, result[1] as u8, result[2] as u8)
+}
+
+
+fn pixelate(colors: Vec<Color32>, w: usize, h: usize, ppp: usize) -> Vec<Color32> {
+    let mut result = Vec::with_capacity(colors.len() * ppp * ppp);
+    result.resize(colors.len() * ppp * ppp, Color32::BLACK);
+
+    for y in 0..h {
+        for x in 0..w {
+            for j in 0..ppp {
+                for i in 0..ppp {
+                    result[y*w*ppp*ppp + j*w*ppp + x*ppp + i] = colors[y*w+x];
+                }
+            }
+        }
+    }
+    
+    result
 }
