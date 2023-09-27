@@ -256,16 +256,8 @@ impl eframe::App for MyApp {
 }
 
 
-fn add_colors(c1: Color32, c2: Color32) -> Color32 {
-
-    let r1 = c1.to_array();
-    let r2 = c2.to_array();
-
-    let r = 0.5 * r1[0] as f32 + 0.5 * r2[0] as f32;
-    let g = 0.5 * r1[1] as f32 + 0.5 * r2[1] as f32;
-    let b = 0.5 * r1[2] as f32 + 0.5 * r2[2] as f32;
-
-    Color32::from_rgb(r as u8, g as u8, b as u8)
+fn add_colors(c1: [f32;3], c2: [f32;3]) -> [f32;3] {
+    [c1[0]+c2[0], c1[1]+c2[1], c1[2]+c2[2]]
 }
 
 
@@ -274,9 +266,10 @@ fn combine_colors(colors: Vec<Color32>) -> Color32 {
     let percentage = 1.0 / count as f32;
 
     // Weaken colors to add afterwards.
-    let colors : Vec<Color32> = colors.into_iter().map(|c| c.linear_multiply(percentage) ).collect();
+    let colors : Vec<[f32;3]> = colors.into_iter().map(|c| [c[0] as f32 * percentage, c[1] as f32 * percentage, c[2] as f32 * percentage]).collect();
     // Split first color.
     let (left, right) = colors.split_at(1);
     // Fold remaining colors on top of it.
-    right.into_iter().fold(left[0], |acc, v| add_colors(acc, *v))
+    let result = right.into_iter().fold(left[0], |acc, v| add_colors(acc, *v));
+    Color32::from_rgb(result[0] as u8, result[1] as u8, result[2] as u8)
 }
