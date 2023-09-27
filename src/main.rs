@@ -65,17 +65,33 @@ struct Ray {
     dir: Vector
 }
 
+
+fn ground_checkerboard(p: Point) -> Color32 {
+    if ((p.x as i32) + (p.y as i32)) % 2 == 0 {
+        Color32::BLACK
+    } else {
+        Color32::WHITE
+    }
+}
+
+
+const LINE_THICKNESS : f32 = 0.01;
+fn ground_grid(p: Point) -> Color32 {
+    if (p.x.abs() % 1.0) < LINE_THICKNESS || (p.y.abs() % 1.0) < LINE_THICKNESS {
+        Color32::GRAY
+    } else {
+        Color32::WHITE
+    }
+}
+
 fn trace_ray(ray: &Ray) -> Color32 {
     if ray.dir.z >= 0.001 {
         Color32::BLUE
     } else {
         let t = ray.pos.z / -ray.dir.z;
         let p = ray.pos + ray.dir.scale(t);
-        if ((p.x as i32) + (p.y as i32)) % 2 == 0 {
-            Color32::BLACK
-        } else {
-            Color32::WHITE
-        }
+        // ground_checkerboard(p)
+        ground_grid(p)
     }
 }
 
