@@ -159,15 +159,29 @@ impl eframe::App for MyApp {
                     let mut result = vec![];
                     for y in range.0 .. range.1 {
                         for x in 0..w {
-                            let ray = Ray {
-                                pos,
-                                dir: w_c * Vector::new(
-                                    2.0 * ((x as f32 / w as f32) - 0.5) *  f32::tan(0.5 * fov),
-                                    2.0 * ((y as f32 / h as f32) - 0.5) * -f32::tan(0.5 * fov), 
-                                    1.
-                                )
-                            };
-                            result.push(trace_ray(&ray));
+                            // Anti-aliasing by tracing 2 points.
+
+                            let rays = [
+                                Ray {
+                                    pos,
+                                    dir: w_c * Vector::new(
+                                        2.0 * ((x as f32 / w as f32) - 0.5) *  f32::tan(0.5 * fov),
+                                        2.0 * ((y as f32 / h as f32) - 0.5) * -f32::tan(0.5 * fov), 
+                                        1.
+                                    )
+                                },
+                                Ray {
+                                    pos,
+                                    dir: w_c * Vector::new(
+                                        2.0 * (((x as f32 + 0.5) / w as f32) - 0.5) *  f32::tan(0.5 * fov),
+                                        2.0 * (((y as f32 + 0.5) / h as f32) - 0.5) * -f32::tan(0.5 * fov), 
+                                        1.
+                                    )
+                                },
+                            ];
+
+                            let colors : Vec<Color32> = rays.iter().map(|ray| trace_ray(ray)).collect();
+                            result.push(combine_colors(colors));
                         }
                     }
                     result
@@ -239,4 +253,30 @@ impl eframe::App for MyApp {
             });
 
     }
+}
+
+
+fn add_colors(c1: Color32, c2: Color32) -> Color32 {
+
+    let r1 = c1.to_array();
+    let r2 = c2.to_array();
+
+    let r = 0.5 * r1[0] as f32 + 0.5 * r2[0] as f32;
+    let g = 0.5 * r1[1] as f32 + 0.5 * r2[1] as f32;
+    let b = 0.5 * r1[2] as f32 + 0.5 * r2[2] as f32;
+
+    Color32::from_rgb(r as u8, g as u8, b as u8)
+}
+
+
+fn combine_colors(colors: Vec<Color32>) -> Color32 {
+    let count = colors.len();
+    let percentage = 1.0 / count as f32;
+
+    // Weaken colors to add afterwards.
+    let colors : Vec<Color32> = colors.into_iter().map(|c| c.linear_multiply(percentage) ).collect();
+    // Split first color.
+    let (left, right) = colors.split_at(1);
+    // Fold remaining colors on top of it.
+    right.into_iter().fold(left[0], |acc, v| add_colors(acc, *v))
 }
