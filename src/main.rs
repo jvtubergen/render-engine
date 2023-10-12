@@ -75,7 +75,7 @@ fn ground_checkerboard(p: Point) -> Color32 {
 }
 
 
-const LINE_THICKNESS : f32 = 0.01;
+const LINE_THICKNESS : f32 = 0.05;
 fn ground_grid(p: Point) -> Color32 {
     if (p.x.abs() % 1.0) < LINE_THICKNESS || (p.y.abs() % 1.0) < LINE_THICKNESS {
         Color32::GRAY
